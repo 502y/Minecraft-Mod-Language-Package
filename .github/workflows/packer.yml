@@ -221,15 +221,16 @@ jobs:
           fetch-depth: 1
 
       - name: Set Release Tag
-        run: echo "RELEASE_TAG=${{ needs.initialize-release.outputs.upload-url }}" >> $GITHUB_ENV
+        run: echo "RELEASE_TAG=${{ needs.initialize-release.outputs.tag_name }}" >> $GITHUB_ENV
 
       - name: Download existing index.json if exists
         run: |
-          if [ -f version-index.json ]; then
-            cp version-index.json version-index.json.bak
-          else
+          if (Test-Path version-index.json) {
+            Copy-Item version-index.json version-index.json.bak
+          } else {
             echo "{}" > version-index.json
-          fi
+          }
+        shell: pwsh
 
       - name: Update version-index.json
         env:
