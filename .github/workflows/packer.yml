@@ -230,7 +230,7 @@ jobs:
           else
             echo "{}" > version-index.json
           fi
-        shell: pwsh
+        shell: bash
 
       - name: Update version-index.json
         env:
