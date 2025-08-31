@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths: 
+    paths:
       - 'src/**'
       - 'config/packer/**'
       - 'projects/**'
 
 
-      
+
 jobs:
   build-packer:
     if: github.repository == '502y/Minecraft-Mod-Language-Package'
@@ -18,7 +18,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with: 
+        with:
           fetch-depth: 1
           sparse-checkout: src
 
@@ -45,7 +45,7 @@ jobs:
   #   runs-on: windows-latest
   #   steps:
   #     - uses: actions/checkout@v4
-  #       with: 
+  #       with:
   #         fetch-depth: 1
   #         sparse-checkout: src
 
@@ -72,9 +72,9 @@ jobs:
 
       - name: Create timestamp
         id: create_timestamp
-        run: echo "::set-output name=timestamp::$(date '+%Y%m%d%H%M%s')"
+        run: echo "timestamp=Snapshot-$(date '+%Y%m%d%H%M%s')" >> $GITHUB_OUTPUT
         shell: bash
-      
+
         # Create the release: https://github.com/actions/create-release
       - name: Create release
         id: create_release
@@ -87,7 +87,7 @@ jobs:
           draft: false
           prerelease: false
     outputs:
-      upload-url: ${{ steps.create_release.outputs.upload_url }}
+      tag-name: ${{ steps.create_timestamp.outputs.timestamp }}
 
 
   pack:
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 20 # 显然，需要有提交历史才能比较提交。20这个数是任意的。
-      
+
       # 由于Github的限制，这里需要重新拉取打包程序。
       - name: Restore Packer
         id: cache-restore
@@ -212,16 +212,13 @@ jobs:
   update-index:
     if: github.repository == '502y/Minecraft-Mod-Language-Package'
     name: Update Version Index (Optional)
-    needs: [pack]
+    needs: [pack, initialize-release]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: Set Release Tag
-        run: echo "RELEASE_TAG=${{ needs.initialize-release.outputs.upload-url }}" >> $GITHUB_ENV
 
       - name: Download existing index.json if exists
         run: |
@@ -233,7 +230,7 @@ jobs:
 
       - name: Update index.json
         env:
-          RELEASE_TAG: ${{ needs.initialize-release.outputs.upload-url }}
+          RELEASE_TAG: ${{ needs.initialize-release.outputs.release-tag }}
           # 获取所有版本的更新状态，即使某些版本未触发也不会影响
           UPDATED_VERSIONS_1_12_2: ${{ needs.pack.outputs.updated_versions_1_12_2 }}
           UPDATED_VERSIONS_1_16: ${{ needs.pack.outputs.updated_versions_1_16 }}
@@ -278,12 +275,8 @@ jobs:
               if version:
                   updated_versions.append(version)
           
-          release_tag_raw = os.environ.get("RELEASE_TAG", "")
-          if release_tag_raw:
-            release_tag = release_tag_raw.split("/")[-2]
-          else:
-            release_tag = ""
-    
+          release_tag = os.environ.get("RELEASE_TAG", "")
+
           # 为所有更新的版本更新索引
           for v in updated_versions:
             if v:
@@ -308,14 +301,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with: 
+        with:
           fetch-depth: 1
           sparse-checkout: src
 
       # 构造程序
       - name: Build Uploader
         run: dotnet publish .\src\Uploader\Uploader.csproj -o ./ -r win-x64 -p:PublishSingeFile=true
-      
+
       # 还原artifact（资源包）
       - name: Restore Artifacts
         uses: actions/download-artifact@v4
