@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths: 
+    paths:
       - 'src/**'
       - 'config/packer/**'
       - 'projects/**'
 
 
-      
+
 jobs:
   build-packer:
     if: github.repository == '502y/Minecraft-Mod-Language-Package'
@@ -18,7 +18,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with: 
+        with:
           fetch-depth: 1
           sparse-checkout: src
 
@@ -74,7 +74,7 @@ jobs:
         id: create_timestamp
         run: echo "::set-output name=timestamp::$(date '+%Y%m%d%H%M%s')"
         shell: bash
-      
+
         # Create the release: https://github.com/actions/create-release
       - name: Create release
         id: create_release
@@ -134,7 +134,7 @@ jobs:
         id: check-changes
         with:
           # 判断位置：该版本文件、该版本配置、代码
-          paths: > 
+          paths: >
             projects/${{ matrix.version }}
             config/packer/${{ matrix.version }}.json
             src/**
@@ -212,7 +212,7 @@ jobs:
   update-index:
     if: github.repository == '502y/Minecraft-Mod-Language-Package'
     name: Update Version Index (Optional)
-    needs: [pack, initialize-release]
+    needs: [ pack, initialize-release ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -249,18 +249,18 @@ jobs:
           python3 - <<EOF
             import json
             import os
-  
+          
             index_file = "version-index.json"
-  
+          
             # 读取已有 index
             try:
                 with open(index_file, "r") as f:
                     index = json.load(f)
             except FileNotFoundError:
                 index = {}
-  
+          
             release_tag = os.environ.get("RELEASE_TAG", "")
-  
+          
             # 收集本次更新的版本
             version_vars = [
                 "UPDATED_VERSIONS_1_12_2",
@@ -274,12 +274,12 @@ jobs:
                 "UPDATED_VERSIONS_1_21",
                 "UPDATED_VERSIONS_1_21_FABRIC"
             ]
-  
+          
             for var in version_vars:
                 version = os.environ.get(var, "")
                 if version:
                     index[version] = release_tag  # 只更新本次 release 的版本
-  
+          
             # 写回文件
             with open(index_file, "w") as f:
                 json.dump(index, f, indent=2)
@@ -300,7 +300,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with: 
+        with:
           fetch-depth: 1
           sparse-checkout: src
 
