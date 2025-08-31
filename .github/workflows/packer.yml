@@ -213,7 +213,7 @@ jobs:
     if: github.repository == '502y/Minecraft-Mod-Language-Package'
     name: Update Version Index (Optional)
     needs: [pack, initialize-release]
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -225,11 +225,11 @@ jobs:
 
       - name: Download existing index.json if exists
         run: |
-          if (Test-Path version-index.json) {
-            Copy-Item version-index.json version-index.json.bak
-          } else {
+          if [ -f version-index.json ]; then
+            cp version-index.json version-index.json.bak
+          else
             echo "{}" > version-index.json
-          }
+          fi
         shell: pwsh
 
       - name: Update version-index.json
