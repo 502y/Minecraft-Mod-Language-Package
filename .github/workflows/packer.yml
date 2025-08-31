@@ -195,24 +195,24 @@ jobs:
           UPDATED_VERSIONS: ${{ needs.pack.outputs.updated_versions }}
         run: |
           python3 - <<EOF
-          import json
-          import os
-  
-          index_file = "version-index.json"
-        try:
-          with open(index_file, "r") as f:
-            index = json.load(f)
-        except FileNotFoundError:
-          index = {}
-          
-          updated_versions = os.environ["UPDATED_VERSIONS"].split(",")
-          release_tag = os.environ["RELEASE_TAG"].split("/")[-2]
-
-        for v in updated_versions:
-          index[v] = release_tag
-
-        with open(index_file, "w") as f:
-          json.dump(index, f, indent=2)
+            import json
+            import os
+      
+            index_file = "version-index.json"
+            try:
+              with open(index_file, "r") as f:
+                index = json.load(f)
+            except FileNotFoundError:
+              index = {}
+              
+            updated_versions = os.environ["UPDATED_VERSIONS"].split(",")
+            release_tag = os.environ["RELEASE_TAG"].split("/")[-2]
+    
+            for v in updated_versions:
+              index[v] = release_tag
+    
+            with open(index_file, "w") as f:
+              json.dump(index, f, indent=2)
           EOF
 
       - name: Commit and Push index.json
