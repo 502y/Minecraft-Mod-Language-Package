@@ -87,6 +87,7 @@ jobs:
           draft: false
           prerelease: false
     outputs:
+      upload-url: ${{ steps.create_release.outputs.upload_url }}
       tag-name: ${{ steps.create_timestamp.outputs.timestamp }}
 
 
@@ -230,7 +231,7 @@ jobs:
 
       - name: Update index.json
         env:
-          RELEASE_TAG: ${{ needs.initialize-release.outputs.release-tag }}
+          RELEASE_TAG: ${{ needs.initialize-release.outputs.tag-name }}
           # 获取所有版本的更新状态，即使某些版本未触发也不会影响
           UPDATED_VERSIONS_1_12_2: ${{ needs.pack.outputs.updated_versions_1_12_2 }}
           UPDATED_VERSIONS_1_16: ${{ needs.pack.outputs.updated_versions_1_16 }}
