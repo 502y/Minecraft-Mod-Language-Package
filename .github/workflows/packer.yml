@@ -198,7 +198,8 @@ jobs:
         run: |
           if [ "${{ steps.check-changes.outputs.changed }}" == "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Replace all periods and hyphens with underscores
-            echo "version_$matrix.version=${{ matrix.version }}" >> $GITHUB_OUTPUT
+            output_key=${{ matrix.version }}
+            echo "version_$output_key=${{ matrix.version }}" >> $GITHUB_OUTPUT
           fi
         shell: bash
         continue-on-error: true
