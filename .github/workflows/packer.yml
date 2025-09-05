@@ -153,56 +153,73 @@ jobs:
             ${{ matrix.version }}.md5
         if: steps.check-changes.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
 
-      - name: Set asset name
-        run: |
-          $version_tag = "${{ matrix.version }}"
-          # 如果版本是 1.12.2，则文件名不带版本号后缀
-          if ($version_tag -eq '1.12.2') {
-            $asset_name = "Minecraft-Mod-Language-Modpack.zip"
-          } else {
-            # 否则，转换短横线和版本号
-            $formatted_version = $version_tag -replace '\.', '-'
-            $formatted_version = $formatted_version -replace 'fabric', 'Fabric'
-            $asset_name = "Minecraft-Mod-Language-Modpack-$formatted_version.zip"
-          }
-          echo "ASSET_NAME=$asset_name" >> $env:GITHUB_ENV
-
-      # Upload release asset: https://github.com/actions/upload-release-asset
-      - name: Update release asset for ${{ matrix.version }} (ZIP)
-        id: upload-release-asset-zip
-        if: steps.check-changes.outputs.changed == 'true' ||  github.event_name == 'workflow_dispatch'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.initialize-release.outputs.upload-url }}
-          asset_path: Minecraft-Mod-Language-Modpack-${{ matrix.version }}.zip
-          asset_name: ${{ env.ASSET_NAME }}
-          asset_content_type: application/zip
-
-      # 新增步骤：上传 MD5 文件
-      - name: Update release asset for ${{ matrix.version }} (MD5)
-        id: upload-release-asset-md5
-        if: steps.check-changes.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.initialize-release.outputs.upload-url }}
-          asset_path: ${{ matrix.version }}.md5
-          asset_name: ${{ matrix.version }}.md5
-          asset_content_type: text/plain
-
       - name: Collect updated versions
         id: collect-updated
         run: |
           if [ "${{ steps.check-changes.outputs.changed }}" == "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Replace all periods and hyphens with underscores
+            # 将.转换为_，适配变量名
             output_key=$(echo "${{ matrix.version }}" | sed 's/[\.-]/_/g')
             echo "version_$output_key=${{ matrix.version }}" >> $GITHUB_OUTPUT
           fi
         shell: bash
         continue-on-error: true
+
+  upload-release-assets:
+    name: Upload Release Assets
+    needs: [ pack, initialize-release ]
+    runs-on: windows-latest
+    steps:
+      # 1. 下载所有 Artifacts
+      - name: Download all Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # 这将下载 pack Job 生成的所有 Artifacts
+          path: artifacts/
+
+      # 2. 遍历并上传每个 Artifact
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ needs.initialize-release.outputs.upload-url }}
+        run: |
+          # 遍历所有下载的 Artifact 目录
+          Get-ChildItem -Path "artifacts" -Directory | ForEach-Object {
+              $artifact_dir_name = $_.Name
+              # 从目录名中提取版本号，例如 "Minecraft-Mod-Language-Modpack-1.16"
+              # 提取出 "1.16"
+              $version_tag = ($artifact_dir_name -split '-Modpack-')[1]
+          
+              # 根据版本号生成正确的 ZIP 文件名
+              if ($version_tag -eq '1.12.2') {
+                $zip_asset_name = "Minecraft-Mod-Language-Modpack.zip"
+              } else {
+                $formatted_version = $version_tag -replace '\.', '-'
+                $formatted_version = $formatted_version -replace 'fabric', 'Fabric'
+                $zip_asset_name = "Minecraft-Mod-Language-Modpack-$formatted_version.zip"
+              }
+          
+              # 获取原始文件路径
+              $zip_path = "$_.FullName/$artifact_dir_name.zip"
+              $md5_path = "$_.FullName/$version_tag.md5"
+          
+              # 上传 ZIP 文件
+              echo "Uploading ZIP: $zip_path as $zip_asset_name"
+              curl.exe -X POST `
+                -H "Authorization: token $env:GITHUB_TOKEN" `
+                -H "Content-Type: application/zip" `
+                --data-binary "@$zip_path" `
+                "$env:UPLOAD_URL?name=$zip_asset_name"
+          
+              # 上传 MD5 文件
+              echo "Uploading MD5: $md5_path as $version_tag.md5"
+              curl.exe -X POST `
+                -H "Authorization: token $env:GITHUB_TOKEN" `
+                -H "Content-Type: text/plain" `
+                --data-binary "@$md5_path" `
+                "$env:UPLOAD_URL?name=$version_tag.md5"
+          }
+        shell: pwsh
 
   update-index:
     name: Update Version Index (Optional)
