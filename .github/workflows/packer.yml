@@ -209,11 +209,10 @@ jobs:
           
               # Upload ZIP file
               echo "Uploading ZIP: $zip_path as $zip_asset_name"
-              $zip_content = [System.IO.File]::ReadAllBytes($zip_path)
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: application/zip" `
-                --data-binary "$zip_content"  `
+                --data-binary $md5_path  `
                 $zip_upload_url
           
               # Upload MD5 file
