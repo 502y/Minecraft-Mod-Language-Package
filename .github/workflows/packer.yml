@@ -179,13 +179,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 1. Get the upload URL from the previous job
+          # Get the upload URL from the previous job
           $upload_url = "${{ needs.initialize-release.outputs.upload-url }}"
           
-          # 2. Clean up the URL by removing the template part {?name,label}
+          # Clean up the URL by removing the template part {?name,label}
           $clean_upload_url = $upload_url.Split('{')[0]
           
-          # 3. Iterate through downloaded artifact directories
+          # Iterate through downloaded artifact directories
           Get-ChildItem -Path "artifacts" -Directory | ForEach-Object {
               $artifact_dir_name = $_.Name
               $version_tag = ($artifact_dir_name -split '-Modpack-')[1]
@@ -199,25 +199,29 @@ jobs:
                 $zip_asset_name = "Minecraft-Mod-Language-Modpack-$formatted_version.zip"
               }
           
-              # Build file paths
-              $zip_path = Join-Path -Path $_.FullName -ChildPath ($artifact_dir_name + ".zip")
-              $md5_path = Join-Path -Path $_.FullName -ChildPath ($version_tag + ".md5")
+              # Build file paths using sub-expression operator
+              $zip_path = "$(Join-Path -Path $_.FullName -ChildPath ($artifact_dir_name + '.zip'))"
+              $md5_path = "$(Join-Path -Path $_.FullName -ChildPath ($version_tag + '.md5'))"
           
-              # 4. Upload ZIP file
+              # Build the full URL using the format operator -f
+              $zip_upload_url = "{0}?name={1}" -f $clean_upload_url, $zip_asset_name
+              $md5_upload_url = "{0}?name={1}" -f $clean_upload_url, ($version_tag + ".md5")
+          
+              # Upload ZIP file
               echo "Uploading ZIP: $zip_path as $zip_asset_name"
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: application/zip" `
-                --data-binary "$zip_path" `
-                "$clean_upload_url?name=$zip_asset_name"
+                --data-binary $zip_path `
+                $zip_upload_url
           
-              # 5. Upload MD5 file
+              # Upload MD5 file
               echo "Uploading MD5: $md5_path as $version_tag.md5"
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: text/plain" `
-                --data-binary "$md5_path" `
-                "$clean_upload_url?name=$version_tag.md5"
+                --data-binary $md5_path `
+                $md5_upload_url
           }
         shell: pwsh
 
