@@ -179,18 +179,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get the upload URL from the previous job
+          # 1. 获取并清理上传 URL
           $upload_url = "${{ needs.initialize-release.outputs.upload-url }}"
-          
-          # Clean up the URL by removing the template part {?name,label}
           $clean_upload_url = $upload_url.Split('{')[0]
-          
-          # Iterate through downloaded artifact directories
+
+          # 2. 遍历下载的 Artifact 目录
           Get-ChildItem -Path "artifacts" -Directory | ForEach-Object {
               $artifact_dir_name = $_.Name
               $version_tag = ($artifact_dir_name -split '-Modpack-')[1]
-          
-              # Generate the correct asset names
+
+              # 3. 生成正确的资产名称和路径
               if ($version_tag -eq '1.12.2') {
                 $zip_asset_name = "Minecraft-Mod-Language-Modpack.zip"
               } else {
@@ -198,30 +196,29 @@ jobs:
                 $formatted_version = $formatted_version -replace 'fabric', 'Fabric'
                 $zip_asset_name = "Minecraft-Mod-Language-Modpack-$formatted_version.zip"
               }
-          
-              # Build file paths using sub-expression operator
-              $zip_path = "$(Join-Path -Path $_.FullName -ChildPath ($artifact_dir_name + '.zip'))"
-              $md5_path = "$(Join-Path -Path $_.FullName -ChildPath ($version_tag + '.md5'))"
-          
-              # Build the full URL using the format operator -f
-              $zip_upload_url = "{0}?name={1}" -f $clean_upload_url, $zip_asset_name
-              $md5_upload_url = "{0}?name={1}" -f $clean_upload_url, ($version_tag + ".md5")
-          
-              # Upload ZIP file
+
+              $zip_path = Join-Path -Path $_.FullName -ChildPath ($artifact_dir_name + '.zip')
+              $md5_path = Join-Path -Path $_.FullName -ChildPath ($version_tag + '.md5')
+
+              # 4. 上传 ZIP 文件
               echo "Uploading ZIP: $zip_path as $zip_asset_name"
+              # 使用 -f 格式化 URL，然后用 -T 参数上传文件
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: application/zip" `
-                --data-binary $zip_path `
-                $zip_upload_url
-          
-              # Upload MD5 file
+                -T "$zip_path" `
+                -sL `
+                "$clean_upload_url?name=$zip_asset_name"
+
+              # 5. 上传 MD5 文件
               echo "Uploading MD5: $md5_path as $version_tag.md5"
+              # 使用 -T 参数上传文件
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: text/plain" `
-                --data-binary $md5_path `
-                $md5_upload_url
+                -T "$md5_path" `
+                -sL `
+                "$clean_upload_url?name=$version_tag.md5"
           }
         shell: pwsh
 
