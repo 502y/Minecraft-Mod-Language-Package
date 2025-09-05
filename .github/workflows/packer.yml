@@ -212,7 +212,7 @@ jobs:
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: application/zip" `
-                --data-binary $zip_path `
+                --data-binary @"$($zip_path)" `
                 $zip_upload_url
           
               # Upload MD5 file
