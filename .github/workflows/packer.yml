@@ -217,10 +217,11 @@ jobs:
           
               # Upload MD5 file
               echo "Uploading MD5: $md5_path as $version_tag.md5"
+              $md5_content = Get-Content -Path "$md5_path"
               curl.exe -X POST `
                 -H "Authorization: token $env:GITHUB_TOKEN" `
                 -H "Content-Type: text/plain" `
-                --data-binary $md5_path `
+                --data-raw "$md5_content" `
                 $md5_upload_url
           }
         shell: pwsh
